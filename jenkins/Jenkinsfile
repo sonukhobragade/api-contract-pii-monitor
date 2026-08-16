@@ -1,0 +1,201 @@
+pipeline {
+    agent any
+    
+    // Schedule to run every night at 2 AM
+    triggers {
+        cron('0 2 * * *')
+    }
+    
+    environment {
+        // Environment variables for the pipeline
+        PYTHON_VERSION = '3.8'
+        VENV_NAME = 'schema_monitor_env'
+        PROJECT_DIR = "${WORKSPACE}"
+        REPORTS_DIR = "${WORKSPACE}/reports"
+    }
+    
+    stages {
+        stage('Setup Environment') {
+            steps {
+                echo '🔧 Setting up Python environment...'
+                sh '''
+                    # Create virtual environment
+                    python3 -m venv ${VENV_NAME}
+                    source ${VENV_NAME}/bin/activate
+                    
+                    # Upgrade pip
+                    pip install --upgrade pip
+                    
+                    # Install dependencies
+                    pip install -r requirements.txt
+                    
+                    # Create reports directory
+                    mkdir -p ${REPORTS_DIR}
+                '''
+            }
+        }
+        
+        stage('Validate Configuration') {
+            steps {
+                echo '🔍 Validating configuration...'
+                sh '''
+                    source ${VENV_NAME}/bin/activate
+                    
+                    # Check if .env file exists
+                    if [ ! -f .env ]; then
+                        echo "❌ .env file not found!"
+                        exit 1
+                    fi
+                    
+                    # Validate database connectivity
+                    python -c "
+from core.config import config
+print('✅ Configuration loaded successfully')
+print(f'Database: {config.HOST}:{config.PORT}/{config.DB_NAME}')
+print(f'API Endpoints: {list(config.get_api_endpoints().keys())}')
+"
+                '''
+            }
+        }
+        
+        stage('Run Schema Monitoring') {
+            steps {
+                echo '🌙 Running nightly schema monitoring...'
+                script {
+                    // Run the monitoring script and capture exit code
+                    def exitCode = sh(
+                        script: '''
+                            source ${VENV_NAME}/bin/activate
+                            cd ${PROJECT_DIR}
+                            python scripts/nightly_schema_monitor.py
+                        ''',
+                        returnStatus: true
+                    )
+                    
+                    // Set build result based on exit code
+                    if (exitCode == 1) {
+                        currentBuild.result = 'UNSTABLE'
+                        echo '⚠️ Schema changes detected - Build marked as UNSTABLE'
+                    } else if (exitCode == 2) {
+                        currentBuild.result = 'FAILURE'
+                        echo '❌ Critical errors occurred - Build marked as FAILURE'
+                    } else {
+                        echo '✅ No issues detected - Build successful'
+                    }
+                }
+            }
+        }
+        
+        stage('Archive Reports') {
+            steps {
+                echo '📄 Archiving reports...'
+                sh '''
+                    # Move reports to reports directory
+                    mv nightly_schema_report_*.json ${REPORTS_DIR}/ 2>/dev/null || true
+                    mv nightly_schema_report_*.html ${REPORTS_DIR}/ 2>/dev/null || true
+                    mv jenkins_*.txt ${REPORTS_DIR}/ 2>/dev/null || true
+                '''
+                
+                // Archive artifacts
+                archiveArtifacts artifacts: 'reports/*', fingerprint: true, allowEmptyArchive: true
+                
+                // Publish HTML reports
+                publishHTML([
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'reports',
+                    reportFiles: '*.html',
+                    reportName: 'Schema Monitoring Report'
+                ])
+            }
+        }
+        
+        stage('Update Build Description') {
+            steps {
+                script {
+                    // Read build summary if available
+                    def summaryFile = "${WORKSPACE}/reports/jenkins_build_summary.txt"
+                    if (fileExists(summaryFile)) {
+                        def summary = readFile(summaryFile).trim()
+                        currentBuild.description = summary
+                    }
+                }
+            }
+        }
+        
+        stage('Send Notifications') {
+            when {
+                anyOf {
+                    expression { currentBuild.result == 'UNSTABLE' }
+                    expression { currentBuild.result == 'FAILURE' }
+                }
+            }
+            steps {
+                echo '📧 Sending notifications...'
+                script {
+                    def status = currentBuild.result ?: 'SUCCESS'
+                    def color = status == 'FAILURE' ? 'danger' : 'warning'
+                    def icon = status == 'FAILURE' ? '❌' : '⚠️'
+                    
+                    // Send Slack notification (if configured)
+                    try {
+                        slackSend(
+                            channel: '#api-monitoring',
+                            color: color,
+                            message: "${icon} Schema Monitoring Alert: ${status}\nJob: ${env.JOB_NAME}\nBuild: ${env.BUILD_NUMBER}\nDescription: ${currentBuild.description ?: 'No description'}"
+                        )
+                    } catch (Exception e) {
+                        echo "Slack notification failed: ${e.getMessage()}"
+                    }
+                    
+                    // Send email notification
+                    try {
+                        emailext(
+                            subject: "${icon} Nightly Schema Monitoring - ${status}",
+                            body: """
+                                <h2>Nightly Schema Monitoring Report</h2>
+                                <p><strong>Status:</strong> ${status}</p>
+                                <p><strong>Job:</strong> ${env.JOB_NAME}</p>
+                                <p><strong>Build:</strong> ${env.BUILD_NUMBER}</p>
+                                <p><strong>Summary:</strong> ${currentBuild.description ?: 'No summary available'}</p>
+                                <p><strong>Build URL:</strong> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                                <p>Please check the detailed HTML report in the build artifacts.</p>
+                            """,
+                            mimeType: 'text/html',
+                            to: '${DEFAULT_RECIPIENTS}',
+                            attachmentsPattern: 'reports/*.html'
+                        )
+                    } catch (Exception e) {
+                        echo "Email notification failed: ${e.getMessage()}"
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo '🧹 Cleaning up...'
+            sh '''
+                # Clean up virtual environment
+                rm -rf ${VENV_NAME}
+                
+                # Clean up temporary files
+                rm -f *.json *.html *.txt 2>/dev/null || true
+            '''
+        }
+        
+        success {
+            echo '✅ Nightly schema monitoring completed successfully'
+        }
+        
+        unstable {
+            echo '⚠️ Schema changes detected - Review required'
+        }
+        
+        failure {
+            echo '❌ Nightly schema monitoring failed - Immediate attention required'
+        }
+    }
+}

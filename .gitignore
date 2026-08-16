@@ -1,0 +1,101 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Backup files
+*.backup
+*_backup
+parameters_backup
+
+# --- findings artifacts: NEVER commit, these are target lists ---
+clean_pii_findings.json
+clean_pii_only.json
+fresh_pii_analysis.json
+fast_pii_analysis_report.json
+slack_payload_real_data.json
+*_pii_analysis*.json
+*pii_report*.json
+true_zero_insertion_report_*.json
+nightly_schema_report_*.html
+reports/
+jenkins_*.txt
+
+# env / venv / caches
+.env
+venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.DS_Store
+
+# harness template state
+.template.env
+.template.modules
+.claude/logs/
+
+# PII scan output. These name real endpoints and the fields flagged in them.
+*pii_findings*.json
+*_pii_report*.json
+
+# Local Claude Code MCP server config; may contain API tokens
+.mcp.json

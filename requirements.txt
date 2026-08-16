@@ -1,0 +1,19 @@
+# Runtime dependencies.
+#
+# Test and lint tooling lives in requirements-dev.txt, so installing this
+# project does not drag in a linter, a type checker and a test runner.
+
+# Reading and analysing a spec (this is all `python main.py --spec ...` needs)
+requests>=2.32.0
+jsonschema>=4.25.0
+python-dotenv>=1.0.0
+PyYAML>=6.0            # only needed for YAML specs; JSON works without it
+
+# The monitoring mode: stores parsed specs and history
+psycopg2-binary>=2.9.10
+
+# Dashboards
+streamlit>=1.28.0
+plotly>=5.17.0
+pandas>=2.0.0
+numpy>=1.24.0

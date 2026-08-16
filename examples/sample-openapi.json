@@ -1,0 +1,127 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Example Orders API",
+    "version": "1.0.0",
+    "description": "A synthetic spec used to demonstrate PII detection. Every field here is invented."
+  },
+  "paths": {
+    "/orders": {
+      "parameters": [
+        {
+          "name": "customer_email",
+          "in": "query",
+          "description": "Filter orders by the customer's email address",
+          "schema": { "type": "string", "format": "email" }
+        }
+      ],
+      "get": {
+        "summary": "List orders",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Order" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create an order",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/OrderRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Order" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "uptime_seconds": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "OrderRequest": {
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "sku": { "type": "string" },
+              "quantity": { "type": "integer" }
+            }
+          },
+          { "$ref": "#/components/schemas/Customer" }
+        ]
+      },
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "full_name": { "type": "string" },
+          "contact": {
+            "type": "string",
+            "format": "email",
+            "description": "Where the receipt is sent"
+          },
+          "national_id": {
+            "type": "string",
+            "description": "Government identifier, required for customs"
+          },
+          "billing_address": {
+            "type": "object",
+            "properties": {
+              "street": { "type": "string" },
+              "postal_code": { "type": "string" }
+            }
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "order_id": { "type": "string" },
+          "status": { "type": "string" },
+          "customer": { "$ref": "#/components/schemas/Customer" },
+          "last_seen_ip": { "type": "string", "format": "ipv4" }
+        }
+      }
+    }
+  }
+}

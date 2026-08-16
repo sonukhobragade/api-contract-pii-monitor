@@ -1,0 +1,29 @@
+{
+  "base_url": "https://api.example.com",
+  "headers": {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+  "auth": {
+    "type": "none",
+    "token": "",
+    "api_key": "",
+    "username": "",
+    "password": ""
+  },
+  "endpoints_to_test": [
+    {
+      "path": "/orders",
+      "method": "POST",
+      "test_data": {
+        "sku": "WIDGET-001",
+        "quantity": 2
+      }
+    },
+    {
+      "path": "/orders/{order_id}",
+      "method": "GET",
+      "test_data": {}
+    }
+  ]
+}
