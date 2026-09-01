@@ -131,6 +131,7 @@ python run_pii_dashboard.py          # Streamlit UI
 | Path | Contains |
 |---|---|
 | `core/` | Parser, detector, schema-change detector, report generator, Slack manager |
+| `src/` | Contract tester: validates live API responses against the stored schema |
 | `scripts/` | Batch analysis and the nightly monitor |
 | `dashboard/`, `simple_dashboard/` | Streamlit views over stored findings |
 | `examples/` | A synthetic OpenAPI spec to run against |
