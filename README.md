@@ -1,4 +1,4 @@
-# pii-api-analyzer
+# api-contract-pii-monitor
 
 ![gate](../../actions/workflows/gate.yml/badge.svg)
 
