@@ -10,6 +10,35 @@ The point is that PII exposure is a property of your API contract, and your API
 contract is already machine readable. You should not need a manual audit to
 answer "which endpoints return an email address".
 
+## In one command
+
+```bash
+pip install -r requirements.txt
+python main.py --spec examples/sample-openapi.json
+```
+
+No database, no network call, no credentials:
+
+```
+  PII ANALYSIS — 3 endpoints, 22 findings across 2 endpoints
+
+  CRITICAL  3
+  HIGH      16
+  MEDIUM    3
+
+  GET /orders
+    [critical] [].customer.national_id   (government_id, response:200)
+    [high    ] /orders?customer_email    (email_address, query_parameter)
+    [high    ] [].last_seen_ip           (ip_address,    response:200)
+    [medium  ] [].customer.full_name     (full_name,     response:200)
+```
+
+Every finding names the exact JSON path and where it travels — query
+parameter, request body or response — because "this endpoint has PII" is not
+actionable and "this response returns a government id" is.
+
+Add `--fail-on critical` to make that exit non-zero in CI.
+
 ## How it works
 
 ```mermaid
