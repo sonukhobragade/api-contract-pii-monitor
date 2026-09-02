@@ -97,5 +97,5 @@ __pycache__/
 *pii_findings*.json
 *_pii_report*.json
 
-# Local Claude Code MCP server config; may contain API tokens
+# Local editor/assistant config; may contain API tokens
 .mcp.json
